@@ -1,0 +1,39 @@
+# =============================================================================
+# H2 IN-MEMORY EMBEDDED PROFILE CONFIGURATION (application-h2.yml)
+# Use when PostgreSQL is not running locally
+# =============================================================================
+
+spring:
+  config:
+    activate:
+      on-profile: h2
+
+  # H2 In-Memory Database with PostgreSQL Compatibility Mode
+  datasource:
+    url: jdbc:h2:mem:enterprise_assistant;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# Enable dev logging
+logging:
+  level:
+    root: INFO
+    com.enterprise.assistant: DEBUG
+    org.hibernate.SQL: DEBUG

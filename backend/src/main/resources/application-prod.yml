@@ -1,0 +1,48 @@
+# =============================================================================
+# PRODUCTION PROFILE CONFIGURATION (application-prod.yml)
+# =============================================================================
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  # PostgreSQL Database Connection & HikariCP Pool
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:enterprise_assistant}
+    username: ${POSTGRES_USER:assistant_user}
+    password: ${POSTGRES_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: ProdHikariCP
+      maximum-pool-size: 20
+      minimum-idle: 10
+      idle-timeout: 300000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+
+  # JPA & Hibernate Production Settings
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Redis Cache Production Settings
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 3000ms
+
+# Logging Settings for Production
+logging:
+  level:
+    root: WARN
+    com.enterprise.assistant: INFO
+    org.springframework.security: WARN

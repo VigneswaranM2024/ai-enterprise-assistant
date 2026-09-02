@@ -1,0 +1,32 @@
+# Maven build output
+target/
+*.jar
+*.war
+*.ear
+
+# IDE & Editor files
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+*.settings/
+.factorypath
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+
+# OS & System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Scratch and Temporary files
+scratch/
+.system_generated/
+*.log
