@@ -1,5 +1,9 @@
 package com.enterprise.assistant.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
@@ -54,7 +58,7 @@ public class RedisConfig implements CachingConfigurer {
         template.setConnectionFactory(connectionFactory);
         
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
-        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();
+        GenericJackson2JsonRedisSerializer jsonSerializer = redisJsonSerializer();
 
         template.setKeySerializer(stringSerializer);
         template.setHashKeySerializer(stringSerializer);
@@ -64,13 +68,33 @@ public class RedisConfig implements CachingConfigurer {
         return template;
     }
 
+    /**
+     * Shared Redis JSON serializer.
+     *
+     * <p>Registers {@link JavaTimeModule} so {@code java.time} values ({@code OffsetDateTime},
+     * {@code Instant}, …) used by cached DTOs can be written and read back. Default typing is kept
+     * identical to {@code GenericJackson2JsonRedisSerializer}'s own defaults (EVERYTHING, as a
+     * property) so existing cache keys, value shapes and deserialization behaviour are preserved.</p>
+     */
+    static GenericJackson2JsonRedisSerializer redisJsonSerializer() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.activateDefaultTyping(
+                mapper.getPolymorphicTypeValidator(),
+                ObjectMapper.DefaultTyping.EVERYTHING,
+                JsonTypeInfo.As.PROPERTY);
+        GenericJackson2JsonRedisSerializer.registerNullValueSerializer(mapper, null);
+        return new GenericJackson2JsonRedisSerializer(mapper);
+    }
+
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory, com.enterprise.assistant.config.cache.CacheProperties cacheProperties) {
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(cacheProperties.getDefaultTtl())
                 .disableCachingNullValues()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(redisJsonSerializer()));
 
         java.util.Map<String, RedisCacheConfiguration> initialCacheConfigurations = new java.util.HashMap<>();
         initialCacheConfigurations.put("document-metadata", defaultConfig.entryTtl(cacheProperties.getDocumentMetadataTtl()));
