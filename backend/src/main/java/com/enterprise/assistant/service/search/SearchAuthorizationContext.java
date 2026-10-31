@@ -1,9 +1,11 @@
 package com.enterprise.assistant.service.search;
 
+import com.enterprise.assistant.domain.user.SecurityClassification;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -60,5 +62,81 @@ public class SearchAuthorizationContext {
                 .userRoles(roles)
                 .userDepartmentCode(principal.getDepartmentCode())
                 .build();
+    }
+
+    /**
+     * Applies the same ABAC rules used by
+     * {@code DocumentChunkRepository#findSimilarChunksAuthorized} to a single document, for paths
+     * that cannot push the predicate into a vector query (for example listing documents in chat).
+     *
+     * <ul>
+     *   <li>clearance: document classification ordinal &le; caller clearance ordinal</li>
+     *   <li>roles: allowed roles null/empty, or at least one match with the caller's roles</li>
+     *   <li>departments: allowed departments null/empty, or the caller's department is listed</li>
+     * </ul>
+     *
+     * @param documentClassification document security classification (null is treated as INTERNAL,
+     *                               matching the entity default)
+     * @param allowedRoles           document role restrictions; may be null
+     * @param allowedDepartments     document department restrictions; may be null
+     * @return true when the caller may see the document
+     */
+    public boolean canAccess(
+            SecurityClassification documentClassification,
+            String[] allowedRoles,
+            String[] allowedDepartments) {
+
+        SecurityClassification required =
+                documentClassification != null ? documentClassification : SecurityClassification.INTERNAL;
+
+        if (required.ordinal() > parseClearance(userClearance).ordinal()) {
+            return false;
+        }
+        if (!isRoleAllowed(allowedRoles)) {
+            return false;
+        }
+        return isDepartmentAllowed(allowedDepartments);
+    }
+
+    /** Parses the caller clearance, failing closed to PUBLIC when absent or unrecognised. */
+    private static SecurityClassification parseClearance(String clearance) {
+        if (clearance == null || clearance.isBlank()) {
+            return SecurityClassification.PUBLIC;
+        }
+        try {
+            return SecurityClassification.valueOf(clearance.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return SecurityClassification.PUBLIC;
+        }
+    }
+
+    private boolean isRoleAllowed(String[] allowedRoles) {
+        if (allowedRoles == null || allowedRoles.length == 0) {
+            return true;
+        }
+        if (userRoles == null || userRoles.isEmpty()) {
+            return false;
+        }
+        for (String role : allowedRoles) {
+            if (role != null && userRoles.contains(role)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isDepartmentAllowed(String[] allowedDepartments) {
+        if (allowedDepartments == null || allowedDepartments.length == 0) {
+            return true;
+        }
+        if (userDepartmentCode == null || userDepartmentCode.isBlank()) {
+            return false;
+        }
+        for (String department : allowedDepartments) {
+            if (userDepartmentCode.equals(department)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

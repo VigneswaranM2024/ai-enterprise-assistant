@@ -1,9 +1,15 @@
+/**
+ * Citation referencing an authoritative enterprise document chunk matched during RAG retrieval.
+ * Field names match the backend CitationDTO record exactly.
+ */
 export interface Citation {
+  citationId: string;
   documentId: string;
   chunkId: string;
-  title: string;
-  snippet: string;
-  score: number;
+  documentTitle: string;
+  fileName: string;
+  chunkIndex?: number | null;
+  similarityScore?: number | null;
 }
 
 export interface ChatMessage {

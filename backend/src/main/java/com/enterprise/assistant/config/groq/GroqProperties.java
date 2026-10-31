@@ -39,9 +39,10 @@ public class GroqProperties {
     private double temperature = 0.2;
 
     /**
-     * Maximum completion tokens. Default: 2048
+     * Maximum completion tokens. Default: 1024
+     * (configurable via GROQ_MAX_TOKENS; keeps free-tier token-per-minute reservations lower).
      */
-    private int maxTokens = 2048;
+    private int maxTokens = 1024;
 
     @PostConstruct
     public void validate() {
